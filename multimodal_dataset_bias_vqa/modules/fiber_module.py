@@ -1,16 +1,14 @@
-import heads
 import numpy as np
 import os
 import pytorch_lightning as pl
-import roberta
-import swin_transformer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from . import heads, roberta, swin_transformer
 from pytorch_lightning.metrics import Metric
-from roberta import RobertaModel
-from stats import log_avg_prob, make_gaussian, prior_kld
-from swin_helpers import swin_adapt_position_encoding
+from .roberta import RobertaModel
+from .stats import log_avg_prob, make_gaussian, prior_kld
+from .swin_helpers import swin_adapt_position_encoding
 
 
 class VQAScore(Metric):
