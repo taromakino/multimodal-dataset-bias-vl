@@ -1,4 +1,4 @@
-from datamodule_base import BaseDataModule
+from datamodules.datamodule_base import BaseDataModule
 from datasets.vqav2_dataset import VQAv2Dataset
 from collections import defaultdict
 
