@@ -233,11 +233,11 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def forward(self, batch):
-        if self.current_task == "vae":
+        if self.task == "vae":
             return self.vae(self, batch)
-        elif self.current_task == "posterior_kld":
+        elif self.task == "posterior_kld":
             return self.posterior_kld(self, batch)
-        elif self.current_task == "backdoor_adjustment":
+        elif self.task == "backdoor_adjustment":
             return self.backdoor_adjustment(self, batch)
 
 
