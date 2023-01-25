@@ -4,12 +4,11 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from . import heads, roberta, swin_transformer
+from modules import heads, roberta, swin_transformer
+from modules.roberta import RobertaModel
+from modules.stats import log_avg_prob, make_gaussian, prior_kld
+from modules.swin_helpers import swin_adapt_position_encoding
 from pytorch_lightning.metrics import Metric
-from .roberta import RobertaModel
-from .stats import log_avg_prob, make_gaussian, prior_kld
-from .swin_helpers import swin_adapt_position_encoding
-
 
 class VQAScore(Metric):
     def __init__(self, dist_sync_on_step=False):

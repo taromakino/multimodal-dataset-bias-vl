@@ -3,7 +3,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import ConcatDataset
 from torch.utils.data.distributed import DistributedSampler
-from vqav2_datamodule import VQAv2DataModule
+from datamodules.vqav2_datamodule import VQAv2DataModule
 
 
 _datamodules = {
