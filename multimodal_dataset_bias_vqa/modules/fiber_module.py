@@ -234,11 +234,11 @@ class FIBERTransformerSS(pl.LightningModule):
 
     def forward(self, batch):
         if self.task == "vae":
-            return self.vae(self, batch)
+            return self.vae(batch)
         elif self.task == "posterior_kld":
-            return self.posterior_kld(self, batch)
+            return self.posterior_kld(batch)
         elif self.task == "backdoor_adjustment":
-            return self.backdoor_adjustment(self, batch)
+            return self.backdoor_adjustment(batch)
 
 
     def make_vqa_targets(self, batch):
