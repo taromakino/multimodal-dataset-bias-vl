@@ -5,7 +5,7 @@ import pyarrow as pa
 import os
 
 from PIL import Image
-from ..transforms import keys_to_transforms
+from transforms import keys_to_transforms
 
 
 class BaseDataset(torch.utils.data.Dataset):
