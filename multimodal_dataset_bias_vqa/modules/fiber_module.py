@@ -376,6 +376,6 @@ class FIBERTransformerSS(pl.LightningModule):
 
     def configure_optimizers(self):
         if self.task == "posterior_kld":
-            return torch.optim.Adam(self.vqa_classifier.encoder_x.parameters(), lr=self.config["lr"])
+            return torch.optim.Adam(self.vqa_classifier.encoder_x.parameters(), lr=self.config["learning_rate"])
         else:
-            return torch.optim.Adam(self.vqa_classifier.parameters(), lr=self.config["lr"])
+            return torch.optim.Adam(self.vqa_classifier.parameters(), lr=self.config["learning_rate"])
