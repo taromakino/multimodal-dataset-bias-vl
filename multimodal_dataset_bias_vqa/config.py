@@ -9,7 +9,7 @@ def config():
     task = None
     seed = 0
     datasets = ["coco", "vg", "sbu", "gcc"]
-    val_mode = "max"
+    val_mode = "min"
     batch_size = (
         4096  # this is a desired batch size; pl trainer will accumulate gradients when per step batch is smaller.
     )
@@ -109,7 +109,6 @@ def task_vae():
 def task_posterior_kld():
     task = "posterior_kld"
     datasets = ["vqa"]
-    val_mode = "min"
     val_check_interval = 1.0
     batch_size = 512
     max_epoch = 100
