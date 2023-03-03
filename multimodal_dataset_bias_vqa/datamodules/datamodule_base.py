@@ -6,7 +6,7 @@ from transformers import (
     DataCollatorForLanguageModeling,
     DataCollatorForWholeWordMask,
     BertTokenizer,
-    RobertaTokenizer,
+    RobertaTokenizer
 )
 
 

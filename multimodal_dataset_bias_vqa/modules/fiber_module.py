@@ -6,9 +6,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from modules import heads, roberta, swin_transformer
 from modules.roberta import RobertaModel
-from modules.stats import log_avg_prob, make_gaussian, prior_kld
 from modules.swin_helpers import swin_adapt_position_encoding
+from modules.vae import Vae
 from pytorch_lightning.metrics import Metric
+
 
 class VQAScore(Metric):
     def __init__(self, dist_sync_on_step=False):
@@ -31,55 +32,6 @@ class VQAScore(Metric):
 
     def compute(self):
         return self.score / self.total # Average target at the column with max logit value
-
-
-class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dims, output_dim):
-        super().__init__()
-        module_list = []
-        last_in_dim = input_dim
-        for hidden_dim in hidden_dims:
-            module_list.append(nn.Linear(last_in_dim, hidden_dim))
-            module_list.append(nn.LayerNorm(hidden_dim))
-            module_list.append(nn.GELU())
-            last_in_dim = hidden_dim
-        module_list.append(nn.Linear(last_in_dim, output_dim))
-        self.module_list = nn.Sequential(*module_list)
-
-    def forward(self, *args):
-        return self.module_list(torch.hstack(args))
-
-
-class GaussianMLP(nn.Module):
-    def __init__(self, input_dim, hidden_dims, output_dim):
-        super().__init__()
-        self.mu_net = MLP(input_dim, hidden_dims, output_dim)
-        self.logvar_net = MLP(input_dim, hidden_dims, output_dim)
-
-    def forward(self, *args):
-        return self.mu_net(*args), self.logvar_net(*args)
-
-
-class VQAClassifier(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        hidden_size = config["hidden_size"]
-        latent_size = config["latent_size"]
-        output_size = config["vqav2_label_size"]
-
-        self.encoder_xy = GaussianMLP(
-            hidden_size * 2 + output_size,
-            [hidden_size * 2, hidden_size * 2],
-            latent_size
-        )
-
-        self.encoder_x = GaussianMLP(
-            hidden_size * 2,
-            [hidden_size * 2, hidden_size * 2],
-            latent_size
-        )
-
-        self.decoder = MLP(hidden_size * 2 + latent_size, [], output_size)
 
 
 class FIBERTransformerSS(pl.LightningModule):
@@ -126,12 +78,8 @@ class FIBERTransformerSS(pl.LightningModule):
             self.cross_modal_image_pooler_itc = heads.Pooler(config["hidden_size"])
             self.cross_modal_text_pooler_itc = heads.Pooler(config["hidden_size"])
 
-        self.vqa_classifier = VQAClassifier(config)
-        if self.task == "backdoor_adjustment":
-            self.test_mu_x, self.test_logvar_x = torch.load(config["test_posteriors_path"])
-        else:
-            self.test_mu_x, self.test_logvar_x = [], []
-            
+        self.vae = Vae(config["hidden_size"], config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
+            config["n_components"], config["n_samples"])
         self.vqa_score = VQAScore()
 
         exclude_keys = ["image_queue", "text_queue", "queue_ptr", "queue_total", "image_input_queue", "text_input_queue",
@@ -232,15 +180,6 @@ class FIBERTransformerSS(pl.LightningModule):
         return ret
 
 
-    def forward(self, batch):
-        if self.task == "vae":
-            return self.vae(batch)
-        elif self.task == "posterior_kld":
-            return self.posterior_kld(batch)
-        elif self.task == "backdoor_adjustment":
-            return self.backdoor_adjustment(batch)
-
-
     def make_vqa_targets(self, batch):
         vqa_labels = batch["vqa_labels"]
         vqa_scores = batch["vqa_scores"]
@@ -253,83 +192,12 @@ class FIBERTransformerSS(pl.LightningModule):
         return vqa_targets
 
 
-    def vae(self, batch):
-        def sample_z(mu, logvar):
-            if self.training:
-                sd = torch.exp(logvar / 2)  # Same as sqrt(exp(logvar))
-                eps = torch.randn_like(sd)
-                return mu + eps * sd
-            else:
-                return mu
-
+    def forward(self, batch):
         infer = self.infer(batch)
         x = infer["cls_feats"]
         y = self.make_vqa_targets(batch)
-        mu_xy, logvar_xy = self.vqa_classifier.encoder_xy(x, y)
-        z = sample_z(mu_xy, logvar_xy)
-        logits = self.vqa_classifier.decoder(x, z)
-
-        reconst_loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none").sum(dim=1)
-        kld = prior_kld(mu_xy, logvar_xy)
-        loss = reconst_loss + kld
-
-        self.vqa_score(logits, y)
-
-        out = {
-            "loss": loss.mean(),
-            "kld": kld.mean()
-        }
-        return out
-
-    def posterior_kld(self, batch):
-        infer = self.infer(batch, mask_text=False, mask_image=False)
-        x = infer["cls_feats"]
-        y = self.make_vqa_targets(batch)
-        mu_xy, logvar_xy = self.vqa_classifier.encoder_xy(x, y)
-        mu_x, logvar_x = self.vqa_classifier.encoder_x(x)
-        posterior_xy = make_gaussian(mu_xy, logvar_xy)
-        posterior_x = make_gaussian(mu_x, logvar_x)
-        loss = torch.distributions.kl_divergence(posterior_xy, posterior_x)
-
-        out = {
-            "loss": loss.mean(),
-            "prior_kld": prior_kld(mu_x, logvar_x).mean(),
-            "mu_x": mu_x.detach().cpu(),
-            "logvar_x": logvar_x.detach().cpu()
-        }
-        return out
-
-    def backdoor_adjustment(self, batch):
-        n_samples = self.config["n_samples"]
-
-        infer = self.infer(batch, mask_text=False, mask_image=False)
-        x = infer["cls_feats"]
-        y = self.make_vqa_targets(batch)
-
-        x_rep = torch.repeat_interleave(x, repeats=n_samples, dim=0)
-        y_rep = torch.repeat_interleave(y, repeats=n_samples, dim=0)
-        mu_x, logvar_x = self.vqa_classifier.encoder_x(x)
-        posterior_x = make_gaussian(mu_x, logvar_x)
-        z = posterior_x.sample((n_samples,))
-        logits = self.vqa_classifier.decoder(x_rep, z)
-
-        logp_y_xz = -F.binary_cross_entropy_with_logits(logits, y_rep, reduction="none").sum(dim=1)
-        assert logp_y_xz.shape == torch.Size([n_samples])  # (n_samples,)
-
-        n_test = len(self.test_mu_x)
-        idxs = np.random.choice(n_test, self.config["n_posteriors"], replace=False)
-        test_mu_x = self.test_mu_x[idxs].to(self.device)
-        test_logvar_x = self.test_logvar_x[idxs].to(self.device)
-        agg_posterior = make_gaussian(test_mu_x, test_logvar_x)
-        logp_agg_posterior = log_avg_prob(agg_posterior.log_prob(z[:, None, :]).T)
-        assert logp_agg_posterior.shape == torch.Size([n_samples])  # (n_samples,)
-
-        self.vqa_score(logits, y_rep)
-
-        out = {
-            "conditional_lml": log_avg_prob(logp_y_xz),
-            "interventional_lml": log_avg_prob(logp_agg_posterior - posterior_x.log_prob(z) + logp_y_xz)
-        }
+        out = self.vae(x, y)
+        self.vqa_score(out.pop("logits_y_xz"), y)
         return out
 
 
@@ -341,8 +209,7 @@ class FIBERTransformerSS(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         out = self(batch)
         self.log("val_loss", out["loss"], on_step=False, on_epoch=True)
-        if self.task == "vae":
-            self.log("val_kld", out["kld"], on_step=False, on_epoch=True)
+        self.log("val_kld", out["kld"], on_step=False, on_epoch=True)
         
         
     def validation_epoch_end(self, outs):
@@ -352,30 +219,14 @@ class FIBERTransformerSS(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         out = self(batch)
-        if "loss" in out:
-            self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
-        if self.task == "vae":
-            self.log("test_kld", out["kld"], on_step=False, on_epoch=True)
-        elif self.task == "posterior_kld":
-            self.test_mu_x.append(out["mu_x"])
-            self.test_logvar_x.append(out["logvar_x"])
-        elif self.task == "backdoor_adjustment":
-            self.log("conditional_lml", out["conditional_lml"], on_step=False, on_epoch=True)
-            self.log("interventional_lml", out["interventional_lml"], on_step=False, on_epoch=True)
+        self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
+        self.log("test_kld", out["kld"], on_step=False, on_epoch=True)
 
 
     def test_epoch_end(self, outs):
-        if self.task == "posterior_kld":
-            self.test_mu_x = torch.vstack(self.test_mu_x)
-            self.test_logvar_x = torch.vstack(self.test_logvar_x)
-            torch.save((self.test_mu_x, self.test_logvar_x), os.path.join(self.hparams.config["log_dir"],
-                f"version_{self.hparams.config['seed']}", "test_posteriors.pt"))
-        else:
-            self.log("test_score", self.vqa_score.compute())
-            self.vqa_score.reset()
+        self.log("test_score", self.vqa_score.compute())
+        self.vqa_score.reset()
+
 
     def configure_optimizers(self):
-        if self.task == "posterior_kld":
-            return torch.optim.Adam(self.vqa_classifier.encoder_x.parameters(), lr=self.config["learning_rate"])
-        else:
-            return torch.optim.Adam(self.vqa_classifier.parameters(), lr=self.config["learning_rate"])
+        return torch.optim.Adam(self.vae.parameters(), lr=self.config["learning_rate"])

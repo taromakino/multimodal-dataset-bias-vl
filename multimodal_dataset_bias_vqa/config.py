@@ -6,7 +6,6 @@ ex = Experiment("FIBER")
 
 @ex.config
 def config():
-    task = None
     seed = 0
     datasets = ["vqa"]
     val_mode = "min"
@@ -42,9 +41,9 @@ def config():
     itc_pooler = True
 
     # Optimizer settings
-    learning_rate = 1e-3
-    max_epoch = 300
-    batch_size = 512
+    learning_rate = 1e-4
+    max_epoch = 200
+    batch_size = 1
 
     # PL Trainer settings
     resume_from = None
@@ -53,36 +52,18 @@ def config():
     # below params varies with the environment
     data_root = ""
     log_dir = "result"
-    per_gpu_batchsize = 0 # Required
+    per_gpu_batchsize = 1
     num_gpus = 4
     num_nodes = 1
     load_path = ""
     num_workers = 20
     precision = 32
 
-    # VAE settings
-    latent_size = 512
-    n_samples = 512
-    n_posteriors = 512
-    test_posteriors_path = None
-
     # VQA settings
     is_cp = False
 
-
-@ex.named_config
-def task_vae():
-    task = "vae"
-
-
-@ex.named_config
-def task_posterior_kld():
-    task = "posterior_kld"
-
-
-@ex.named_config
-def task_backdoor_adjustment():
-    task = "backdoor_adjustment"
-    max_epoch = 1
-    per_gpu_batchsize = 1
-    test_only = True
+    # VAE settings
+    hidden_dims = [512, 512]
+    latent_size = 512
+    n_components = 128
+    n_samples = 128

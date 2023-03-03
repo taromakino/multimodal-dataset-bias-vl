@@ -37,7 +37,7 @@ def main(_config):
     logger = pl.loggers.CSVLogger(
         _config["log_dir"],
         name="",
-        version=_config["seed"],
+        version=_config["seed"]
     )
 
     model.freeze()
@@ -46,8 +46,7 @@ def main(_config):
     elif task == "posterior_kld":
         model.vqa_classifier.encoder_x.requires_grad_(True)
 
-    num_gpus = _config["num_gpus"] if isinstance(_config["num_gpus"], int) else len(_config["num_gpus"])
-    grad_steps = max(_config["batch_size"] // (_config["per_gpu_batchsize"] * num_gpus * _config["num_nodes"]), 1)
+    n_accumulate = max(_config["batch_size"] // (_config["per_gpu_batchsize"] * _config["num_gpus"] * _config["num_nodes"]), 1)
 
     trainer = pl.Trainer(
         gpus=_config["num_gpus"],
@@ -61,8 +60,8 @@ def main(_config):
         logger=logger,
         prepare_data_per_node=False,
         replace_sampler_ddp=False,
-        accumulate_grad_batches=grad_steps,
-        resume_from_checkpoint=_config["resume_from"], # Load everything (model weights, optimizer, lr scheduler, etc)
+        accumulate_grad_batches=n_accumulate,
+        resume_from_checkpoint=_config["resume_from"] # Load everything (model weights, optimizer, lr scheduler, etc)
     )
 
     if not _config["test_only"]:
