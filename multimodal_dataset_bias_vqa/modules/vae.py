@@ -63,7 +63,7 @@ class Vae(nn.Module):
         y = torch.repeat_interleave(y[None], repeats=self.n_samples, dim=0)
         x, y, z = x.view(-1, x.shape[-1]), y.view(-1, y.shape[-1]), z.view(-1, z.shape[-1])
         logits_y_xz = self.p_y_xz_net(x, z)
-        log_p_y_xz = F.binary_cross_entropy_with_logits(logits_y_xz, y, reduction="none").sum(dim=1)
+        log_p_y_xz = -F.binary_cross_entropy_with_logits(logits_y_xz, y, reduction="none").sum(dim=1)
         assert log_p_y_xz.shape == (self.n_samples * batch_size,)
         # KL(q(z|x,y) || p(z))
         dist_c = D.Categorical(logits=self.logits_c)
