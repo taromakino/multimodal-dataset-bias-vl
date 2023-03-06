@@ -208,7 +208,7 @@ class FIBERTransformerSS(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         out = self(batch)
         self.log("val_loss", out["loss"], on_step=False, on_epoch=True)
-        self.log("val_kld", out["kld"], on_step=False, on_epoch=True)
+        self.log("val_kl", out["kl"], on_step=False, on_epoch=True)
         
         
     def validation_epoch_end(self, outs):
@@ -219,7 +219,7 @@ class FIBERTransformerSS(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         out = self(batch)
         self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
-        self.log("test_kld", out["kld"], on_step=False, on_epoch=True)
+        self.log("test_kl", out["kl"], on_step=False, on_epoch=True)
 
 
     def test_epoch_end(self, outs):
