@@ -32,10 +32,9 @@ class GaussianMLP(nn.Module):
 
 
 class Vae(nn.Module):
-    def __init__(self, input_dim, hidden_dims, latent_dim, output_dim, n_components, n_samples, device):
+    def __init__(self, input_dim, hidden_dims, latent_dim, output_dim, n_components, n_samples):
         super().__init__()
         self.n_samples = n_samples
-        self.device = device
         self.q_z_xy_net = GaussianMLP(2 * input_dim + output_dim, hidden_dims, latent_dim)
         self.q_z_x_net = GaussianMLP(2 * input_dim, hidden_dims, latent_dim)
         self.p_y_xz_net = MLP(2 * input_dim + latent_dim, hidden_dims, output_dim)
@@ -48,7 +47,7 @@ class Vae(nn.Module):
 
     def sample_z(self, mu, var):
         sd = var.sqrt()
-        eps = torch.randn(self.n_samples, *sd.shape).to(self.device)
+        eps = torch.randn(self.n_samples, *sd.shape).to(sd.get_device())
         return mu + eps * sd
 
 
