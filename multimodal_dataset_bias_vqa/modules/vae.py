@@ -74,8 +74,9 @@ class Vae(nn.Module):
         assert log_p_z.shape == (self.n_samples * batch_size,)
         kl = (log_q_z_xy - log_p_z).mean()
         elbo = log_p_y_xz.mean() - kl
+        logits_y_xz = logits_y_xz.view((self.n_samples, batch_size, -1))
         return {
             "loss": -elbo,
             "kl": kl,
-            "logits_y_xz": logits_y_xz
+            "logits_y_xz": logits_y_xz[0]
         }
