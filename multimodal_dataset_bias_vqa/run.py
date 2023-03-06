@@ -33,7 +33,6 @@ def main(_config):
     )
     callbacks = [checkpoint_callback]
 
-    task = f'{_config["task"]}'
     logger = pl.loggers.CSVLogger(
         _config["log_dir"],
         name="",
@@ -41,13 +40,9 @@ def main(_config):
     )
 
     model.freeze()
-    if task == "vae":
-        model.vqa_classifier.requires_grad_(True)
-    elif task == "posterior_kld":
-        model.vqa_classifier.encoder_x.requires_grad_(True)
+    model.vae.requires_grad_(True)
 
     n_accumulate = max(_config["batch_size"] // (_config["per_gpu_batchsize"] * _config["num_gpus"] * _config["num_nodes"]), 1)
-
     trainer = pl.Trainer(
         gpus=_config["num_gpus"],
         num_nodes=_config["num_nodes"],

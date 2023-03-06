@@ -39,7 +39,6 @@ class FIBERTransformerSS(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.config = config
-        self.task = config["task"]
 
         resolution_after = config["image_size"]
         self.num_fuse_block = config["num_fuse_block"]
