@@ -78,7 +78,7 @@ class FIBERTransformerSS(pl.LightningModule):
             self.cross_modal_text_pooler_itc = heads.Pooler(config["hidden_size"])
 
         self.vae = Vae(config["hidden_size"], config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
-            config["n_components"], config["n_samples"])
+            config["n_components"], config["n_samples"], self.device)
         self.vqa_score = VQAScore()
 
         exclude_keys = ["image_queue", "text_queue", "queue_ptr", "queue_total", "image_input_queue", "text_input_queue",
