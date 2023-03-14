@@ -12,8 +12,9 @@ class MultimodalRegressor(nn.Module):
 
     def forward(self, x, y):
         logits = self.model(x)
+        loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none").sum(dim=1)
         return {
-            "loss": F.binary_cross_entropy_with_logits(logits, y),
+            "loss": loss,
             "logits": logits
         }
 
@@ -29,7 +30,8 @@ class UnimodalRegressor(nn.Module):
         pred_image = torch.sigmoid(self.image_model(x_image))
         pred_text = torch.sigmoid(self.text_model(x_text))
         pred_avg = (pred_image + pred_text) / 2
+        loss = F.binary_cross_entropy(pred_avg, y, reduction="none").sum(dim=1)
         return {
-            "loss": F.binary_cross_entropy(pred_avg, y),
+            "loss": loss,
             "logits": pred_avg.log()
         }
