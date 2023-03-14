@@ -31,8 +31,15 @@ def main(_config):
         save_last=True,
         filename="best"
     )
-    callbacks = [checkpoint_callback]
-
+    early_stop_callback = pl.callbacks.EarlyStopping(
+        monitor="val_loss",
+        mode=_config["val_mode"],
+        patience=_config["patience"]
+    )
+    callbacks = [
+        checkpoint_callback,
+        early_stop_callback
+    ]
     logger = pl.loggers.CSVLogger(
         _config["log_dir"],
         name="",
@@ -59,7 +66,5 @@ def main(_config):
         resume_from_checkpoint=_config["resume_from"] # Load everything (model weights, optimizer, lr scheduler, etc)
     )
 
-    if not _config["test_only"]:
-        trainer.fit(model, datamodule=dm)
-    else:
-        trainer.test(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model, datamodule=dm)

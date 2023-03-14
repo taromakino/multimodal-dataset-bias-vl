@@ -42,8 +42,9 @@ def config():
 
     # Optimizer settings
     learning_rate = 1e-5
-    max_epoch = 100
     batch_size = 1
+    max_epoch = 100
+    patience = 20
 
     # PL Trainer settings
     resume_from = None
