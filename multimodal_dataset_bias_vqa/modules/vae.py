@@ -36,7 +36,6 @@ class Vae(nn.Module):
         super().__init__()
         self.n_samples = n_samples
         self.q_z_xy_net = GaussianMLP(2 * input_dim + output_dim, hidden_dims, latent_dim)
-        self.q_z_x_net = GaussianMLP(2 * input_dim, hidden_dims, latent_dim)
         self.p_y_xz_net = MLP(2 * input_dim + latent_dim, hidden_dims, output_dim)
         self.logits_c = nn.Parameter(torch.ones(n_components))
         self.mu_z_c = nn.Parameter(torch.zeros(n_components, latent_dim))

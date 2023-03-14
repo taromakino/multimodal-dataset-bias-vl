@@ -41,7 +41,7 @@ def config():
     itc_pooler = True
 
     # Optimizer settings
-    learning_rate = 5e-5
+    learning_rate = 1e-5
     max_epoch = 100
     batch_size = 1
 
