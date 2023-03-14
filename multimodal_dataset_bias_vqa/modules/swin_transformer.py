@@ -192,6 +192,7 @@ class WindowAttention(nn.Module):
             self.alpha_i2t = nn.Parameter(torch.Tensor([0]))
             self.norm_i2t_i = norm_layer(dim)
 
+
     def forward(self, x, mask: Optional[torch.Tensor] = None, y=None, y_mask=None):
         """
         Args:
@@ -257,7 +258,6 @@ class WindowAttention(nn.Module):
             y = self.proj_i2t(y)
             y = self.proj_drop_i2t(y)
             x = x + self.alpha_i2t * y
-
         return x
 
 
@@ -277,7 +277,6 @@ class SwinTransformerBlock(nn.Module):
         act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
-
     def __init__(
         self,
         dim,
@@ -353,6 +352,7 @@ class SwinTransformerBlock(nn.Module):
 
         self.register_buffer("attn_mask", attn_mask)
 
+
     def forward(self, x, y=None, y_mask=None):
         H, W = self.input_resolution
         B, L, C = x.shape
@@ -400,13 +400,13 @@ class PatchMerging(nn.Module):
         dim (int): Number of input channels.
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
-
     def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
         super().__init__()
         self.input_resolution = input_resolution
         self.dim = dim
         self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
         self.norm = norm_layer(4 * dim)
+
 
     def forward(self, x):
         """
@@ -428,11 +428,12 @@ class PatchMerging(nn.Module):
 
         x = self.norm(x)
         x = self.reduction(x)
-
         return x
+
 
     def extra_repr(self) -> str:
         return f"input_resolution={self.input_resolution}, dim={self.dim}"
+
 
     def flops(self):
         H, W = self.input_resolution
@@ -458,7 +459,6 @@ class BasicLayer(nn.Module):
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
     """
-
     def __init__(
         self,
         dim,
@@ -477,7 +477,6 @@ class BasicLayer(nn.Module):
         dim_text=None,
         layer_index=0,
     ):
-
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution
@@ -511,6 +510,7 @@ class BasicLayer(nn.Module):
         else:
             self.downsample = None
 
+
     def forward(self, x, y=None, y_mask=None):
         for blk in self.blocks:
             if not torch.jit.is_scripting() and self.use_checkpoint:
@@ -520,6 +520,7 @@ class BasicLayer(nn.Module):
         if self.downsample is not None:
             x = self.downsample(x)
         return x
+
 
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
@@ -548,7 +549,6 @@ class SwinTransformer(nn.Module):
         patch_norm (bool): If True, add normalization after patch embedding. Default: True
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
     """
-
     def __init__(
         self,
         img_size=224,
@@ -642,20 +642,25 @@ class SwinTransformer(nn.Module):
         else:
             self.apply(_init_vit_weights)
 
+
     @torch.jit.ignore
     def no_weight_decay(self):
         return {"absolute_pos_embed"}
+
 
     @torch.jit.ignore
     def no_weight_decay_keywords(self):
         return {"relative_position_bias_table"}
 
+
     def get_classifier(self):
         return self.head
+
 
     def reset_classifier(self, num_classes, global_pool=""):
         self.num_classes = num_classes
         self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+
 
     def forward_features(self, x, y=None, y_mask=None):
         x = self.patch_embed(x)
@@ -666,6 +671,7 @@ class SwinTransformer(nn.Module):
             x = layer(x, y, y_mask)
         x = self.norm(x)  # B L C
         return x
+
 
     def forward(self, x, y=None, y_mask=None):
         x = self.forward_features(x, y, y_mask)
@@ -695,7 +701,6 @@ def _create_swin_transformer(variant, pretrained=False, default_cfg=None, **kwar
         pretrained_strict=False,
         **kwargs,
     )
-
     return model
 
 

@@ -28,9 +28,11 @@ class MTDataModule(LightningDataModule):
 
         self.dist = dist
 
+
     def prepare_data(self):
         for dm in self.dms:
             dm.prepare_data()
+
 
     def setup(self, stage):
         for dm in self.dms:
@@ -55,6 +57,7 @@ class MTDataModule(LightningDataModule):
             self.val_sampler = None
             self.test_sampler = None
 
+
     def train_dataloader(self):
         loader = DataLoader(
             self.train_dataset,
@@ -65,6 +68,7 @@ class MTDataModule(LightningDataModule):
         )
         return loader
 
+
     def val_dataloader(self, batch_size=None):
         loader = DataLoader(
             self.val_dataset,
@@ -74,6 +78,7 @@ class MTDataModule(LightningDataModule):
             collate_fn=self.collate,
         )
         return loader
+
 
     def test_dataloader(self):
         loader = DataLoader(

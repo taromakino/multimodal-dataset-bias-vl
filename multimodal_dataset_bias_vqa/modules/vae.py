@@ -3,22 +3,7 @@ import torch.distributions as D
 import torch.nn as nn
 import torch.nn.functional as F
 from modules.stats import diag_gaussian_log_prob
-
-
-class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dims, output_dim):
-        super().__init__()
-        module_list = []
-        last_in_dim = input_dim
-        for hidden_dim in hidden_dims:
-            module_list.append(nn.Linear(last_in_dim, hidden_dim))
-            module_list.append(nn.GELU())
-            last_in_dim = hidden_dim
-        module_list.append(nn.Linear(last_in_dim, output_dim))
-        self.module_list = nn.Sequential(*module_list)
-
-    def forward(self, *args):
-        return torch.squeeze(self.module_list(torch.hstack(args)))
+from modules.nn_utils import MLP
 
 
 class GaussianMLP(nn.Module):
@@ -77,5 +62,5 @@ class Vae(nn.Module):
         return {
             "loss": -elbo,
             "kl": kl,
-            "logits_y_xz": logits_y_xz[0]
+            "logits": logits_y_xz[0]
         }

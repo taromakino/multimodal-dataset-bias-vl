@@ -7,11 +7,8 @@ import math
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Any, Callable, Optional, Tuple
-
 import torch
 import torch.nn as nn
-
-
 from timm.models.features import FeatureListNet, FeatureDictNet, FeatureHookNet
 from timm.models.hub import has_hf_hub, download_cached_file, load_state_dict_from_hf, load_state_dict_from_url
 from timm.models.layers import Conv2dSame, Linear

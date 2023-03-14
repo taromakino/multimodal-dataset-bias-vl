@@ -7,6 +7,7 @@ ex = Experiment("FIBER")
 @ex.config
 def config():
     seed = 0
+    task = None
     datasets = ["vqa"]
     val_mode = "min"
 
@@ -68,3 +69,18 @@ def config():
     latent_size = 512
     n_components = 128
     n_samples = 128
+
+
+@ex.named_config
+def task_vae():
+    task = "vae"
+
+
+@ex.named_config
+def task_multimodal_regression():
+    task = "multimodal_regression"
+
+
+@ex.named_config
+def task_unimodal_regression():
+    task = "unimodal_regression"

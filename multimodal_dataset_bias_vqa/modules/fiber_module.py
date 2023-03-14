@@ -1,10 +1,9 @@
-import numpy as np
 import os
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from modules import heads, roberta, swin_transformer
+from modules.regression import MultimodalRegressor, UnimodalRegressor
 from modules.roberta import RobertaModel
 from modules.swin_helpers import swin_adapt_position_encoding
 from modules.vae import Vae
@@ -39,6 +38,7 @@ class FIBERTransformerSS(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.config = config
+        self.task = config["task"]
 
         resolution_after = config["image_size"]
         self.num_fuse_block = config["num_fuse_block"]
@@ -80,6 +80,10 @@ class FIBERTransformerSS(pl.LightningModule):
         self.vae = Vae(config["hidden_size"], config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
             config["n_components"], config["n_samples"])
         self.vqa_score = VQAScore()
+        self.multimodal_regressor = MultimodalRegressor(config["hidden_size"], config["hidden_dims"],
+            config["vqav2_label_size"])
+        self.unimodal_regressor = UnimodalRegressor(config["hidden_size"], config["hidden_dims"],
+            config["vqav2_label_size"])
 
         exclude_keys = ["image_queue", "text_queue", "queue_ptr", "queue_total", "image_input_queue", "text_input_queue",
             "text_input_mask_queue"]
@@ -95,7 +99,7 @@ class FIBERTransformerSS(pl.LightningModule):
                 )
             self.load_state_dict(state_dict, strict=False)
 
-    def infer(
+    def make_embeds(
         self,
         batch,
         mask_text=False,
@@ -118,6 +122,68 @@ class FIBERTransformerSS(pl.LightningModule):
             text_ids = batch[f"text_ids{do_mlm}"]
             text_labels = batch[f"text_labels{do_mlm}"]
             text_masks = batch[f"text_masks"]
+
+        # block attn
+        if text_only:
+            text_embeds = self.text_transformer.embeddings(input_ids=text_ids)
+            device = text_embeds.device
+            input_shape = text_masks.size()
+            extend_text_masks = self.text_transformer.get_extended_attention_mask(text_masks, input_shape, device)
+            for layer_i, layer in enumerate(self.text_transformer.encoder.layer):
+                text_embeds = layer(text_embeds, extend_text_masks)[0]
+
+            text_embeds = self.cross_modal_text_transform_itc(text_embeds)
+
+            if self.itc_pooler:
+                cls_feats_text = self.cross_modal_text_pooler_itc(text_embeds)
+            else:
+                cls_feats_text = text_embeds[:, 0]
+
+            cls_feats_text = cls_feats_text / cls_feats_text.norm(dim=-1, keepdim=True)
+
+            ret = {
+                "text_feats": text_embeds,
+                "image_feats": None,
+                "cls_feats": cls_feats_text,
+                "text_labels": text_labels,
+                "text_ids": text_ids,
+                "text_masks": text_masks,
+                "image": None,
+            }
+
+            return ret
+
+        if image_only:
+            image_embeds = self.vit_model.patch_embed(img)
+            if self.vit_model.absolute_pos_embed is not None:
+                image_embeds = image_embeds + self.vit_model.absolute_pos_embed
+            image_embeds = self.vit_model.pos_drop(image_embeds)
+
+            for layer_i, layer in enumerate(self.vit_model.layers):
+                image_embeds = layer(image_embeds)
+            image_embeds = self.vit_model.norm(image_embeds)
+            image_embeds = self.cross_modal_image_transform_itc(image_embeds)
+            image_feats = image_embeds
+
+            avg_image_feats = self.avgpool(image_feats.transpose(1, 2)).view(image_feats.size(0), 1, -1)
+            if self.itc_pooler:
+                cls_feats_image = self.cross_modal_image_pooler_itc(avg_image_feats)
+            else:
+                cls_feats_image = avg_image_feats[:, 0]
+
+            cls_feats_image = cls_feats_image / cls_feats_image.norm(dim=-1, keepdim=True)
+
+            ret = {
+                "text_feats": None,
+                "image_feats": image_embeds,
+                "cls_feats": cls_feats_image,
+                "text_labels": None,
+                "text_ids": None,
+                "text_masks": None,
+                "image": None,
+            }
+
+            return ret
 
         image_embeds = self.vit_model.patch_embed(img)
         if self.vit_model.absolute_pos_embed is not None:
@@ -192,11 +258,20 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def forward(self, batch):
-        infer = self.infer(batch)
-        x = infer["cls_feats"]
         y = self.make_vqa_targets(batch)
-        out = self.vae(x, y)
-        self.vqa_score(out.pop("logits_y_xz"), y)
+        if self.task == "vae":
+            x = self.make_embeds(batch)["cls_feats"]
+            out = self.vae(x, y)
+        elif self.task == "multimodal_regression":
+            x = self.make_embeds(batch)["cls_feats"]
+            out = self.multimodal_regressor(x, y)
+        elif self.task == "unimodal_regression":
+            x_image = self.make_embeds(batch, image_only=True)["cls_feats"]
+            x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
+            out = self.unimodal_regressor(x_image, x_text, y)
+        else:
+            raise ValueError
+        self.vqa_score(out.pop("logits"), y)
         return out
 
 
@@ -208,7 +283,8 @@ class FIBERTransformerSS(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         out = self(batch)
         self.log("val_loss", out["loss"], on_step=False, on_epoch=True)
-        self.log("val_kl", out["kl"], on_step=False, on_epoch=True)
+        if "kl" in out:
+            self.log("val_kl", out["kl"], on_step=False, on_epoch=True)
         
         
     def validation_epoch_end(self, outs):
@@ -219,7 +295,8 @@ class FIBERTransformerSS(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         out = self(batch)
         self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
-        self.log("test_kl", out["kl"], on_step=False, on_epoch=True)
+        if "kl" in out:
+            self.log("test_kl", out["kl"], on_step=False, on_epoch=True)
 
 
     def test_epoch_end(self, outs):

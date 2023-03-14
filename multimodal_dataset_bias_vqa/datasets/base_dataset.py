@@ -83,12 +83,15 @@ class BaseDataset(torch.utils.data.Dataset):
             for i in range(len(self.table)):
                 self.index_mapper[i] = (i, None)
 
+
     @property
     def corpus(self):
         return [text for texts in self.all_texts for text in texts]
 
+
     def __len__(self):
         return len(self.index_mapper)
+
 
     def get_raw_image(self, index, image_key="image"):
         index, caption_index = self.index_mapper[index]
@@ -98,6 +101,7 @@ class BaseDataset(torch.utils.data.Dataset):
             return Image.open(image_bytes).convert("RGBA")
         else:
             return Image.open(image_bytes).convert("RGB")
+
 
     def get_image(self, index, image_key="image"):
         image = self.get_raw_image(index, image_key=image_key)
@@ -109,11 +113,13 @@ class BaseDataset(torch.utils.data.Dataset):
             "raw_index": index,
         }
 
+
     def get_false_image(self, rep, image_key="image"):
         random_index = random.randint(0, len(self.index_mapper) - 1)
         image = self.get_raw_image(random_index, image_key=image_key)
         image_tensor = [tr(image) for tr in self.transforms]
         return {f"false_image_{rep}": image_tensor}
+
 
     def get_text(self, raw_index):
         index, caption_index = self.index_mapper[raw_index]
@@ -135,6 +141,7 @@ class BaseDataset(torch.utils.data.Dataset):
             "gt_txt": gt_text,
         }
 
+
     def get_false_text(self, rep):
         random_index = random.randint(0, len(self.index_mapper) - 1)
 
@@ -147,6 +154,7 @@ class BaseDataset(torch.utils.data.Dataset):
             return_special_tokens_mask=True,
         )
         return {f"false_text_{rep}": (text, encoding)}
+
 
     def get_suite(self, index):
         result = None
@@ -168,6 +176,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 print(f"Error while read file idx {index} in {self.names[0]} -> {e}")
                 index = random.randint(0, len(self.index_mapper) - 1)
         return ret
+
 
     def collate(self, batch, mlm_collator):
         batch_size = len(batch)

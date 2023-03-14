@@ -23,6 +23,7 @@ class VQAv2Dataset(BaseDataset):
             remove_duplicate=False,
         )
 
+
     def __getitem__(self, index):
         image_tensor = self.get_image(index)["image"]
         text = self.get_text(index)["text"]

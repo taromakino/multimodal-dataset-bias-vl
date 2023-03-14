@@ -166,6 +166,7 @@ class RobertaEmbeddings(nn.Module):
             config.max_position_embeddings, config.hidden_size, padding_idx=self.padding_idx
         )
 
+
     def forward(
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0
     ):
@@ -197,6 +198,7 @@ class RobertaEmbeddings(nn.Module):
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
+
 
     def create_position_ids_from_inputs_embeds(self, inputs_embeds):
         """
@@ -248,10 +250,12 @@ class RobertaSelfAttention(nn.Module):
 
         self.is_decoder = config.is_decoder
 
+
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
+
 
     def forward(
         self,
@@ -334,6 +338,7 @@ class RobertaSelfOutput(nn.Module):
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
+
     def forward(self, hidden_states):
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
@@ -347,6 +352,7 @@ class RobertaAttention(nn.Module):
         self.self = RobertaSelfAttention(config, layer_index=layer_index)
         self.output = RobertaSelfOutput(config)
         self.pruned_heads = set()
+
 
     def prune_heads(self, heads):
         if len(heads) == 0:
@@ -365,6 +371,7 @@ class RobertaAttention(nn.Module):
         self.self.num_attention_heads = self.self.num_attention_heads - len(heads)
         self.self.all_head_size = self.self.attention_head_size * self.self.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
+
 
     def forward(
         self,
@@ -400,6 +407,7 @@ class RobertaIntermediate(nn.Module):
         else:
             self.intermediate_act_fn = config.hidden_act
 
+
     def forward(self, hidden_states):
         hidden_states = self.dense(hidden_states)
         hidden_states = self.intermediate_act_fn(hidden_states)
@@ -413,6 +421,7 @@ class RobertaOutput(nn.Module):
         self.dense = nn.Linear(config.intermediate_size, config.hidden_size)
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
 
     def forward(self, hidden_states, input_tensor, last_norm=True):
         hidden_states = self.dense(hidden_states)
@@ -437,6 +446,7 @@ class RobertaLayer(nn.Module):
         self.intermediate = RobertaIntermediate(config)
         self.output = RobertaOutput(config)
         self.alpha_t2i = nn.Parameter(torch.Tensor([0]))
+
 
     def forward(
         self,
@@ -496,6 +506,7 @@ class RobertaLayer(nn.Module):
         # if decoder, return the attn key/values as the last output
         return outputs
 
+
     def feed_forward_chunk(self, attention_output, last_norm=True):
         intermediate_output = self.intermediate(attention_output)
         layer_output = self.output(intermediate_output, attention_output, last_norm=last_norm)
@@ -510,6 +521,7 @@ class RobertaEncoder(nn.Module):
         self.layer = nn.ModuleList(
             [RobertaLayer(config, layer_index=layer_i) for layer_i in range(config.num_hidden_layers)]
         )
+
 
     def forward(
         self,
@@ -608,6 +620,7 @@ class RobertaPooler(nn.Module):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
+
 
     def forward(self, hidden_states):
         # We "pool" the model by simply taking the hidden state corresponding
@@ -732,11 +745,14 @@ class RobertaModel(RobertaPreTrainedModel):
 
         self.init_weights()
 
+
     def get_input_embeddings(self):
         return self.embeddings.word_embeddings
 
+
     def set_input_embeddings(self, value):
         self.embeddings.word_embeddings = value
+
 
     def _prune_heads(self, heads_to_prune):
         """
@@ -753,6 +769,7 @@ class RobertaModel(RobertaPreTrainedModel):
         output_type=BaseModelOutputWithPoolingAndCrossAttentions,
         config_class=_CONFIG_FOR_DOC,
     )
+
     # Copied from transformers.models.bert.modeling_bert.BertModel.forward
     def forward(
         self,

@@ -1,5 +1,4 @@
 import torch
-
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from transformers import (
@@ -52,13 +51,16 @@ class BaseDataModule(LightningDataModule):
         self.mlm_collator = collator(tokenizer=self.tokenizer, mlm=True, mlm_probability=_config["mlm_prob"])
         self.setup_flag = False
 
+
     @property
     def dataset_cls(self):
         raise NotImplementedError("return tuple of dataset class")
 
+
     @property
     def dataset_name(self):
         raise NotImplementedError("return name of dataset")
+
 
     def set_train_dataset(self):
         self.train_dataset = self.dataset_cls(
@@ -73,6 +75,7 @@ class BaseDataModule(LightningDataModule):
             tokenizer=self.tokenizer,
         )
 
+
     def set_val_dataset(self):
         self.val_dataset = self.dataset_cls(
             self.data_dir,
@@ -85,7 +88,6 @@ class BaseDataModule(LightningDataModule):
             image_only=self.image_only,
             tokenizer=self.tokenizer,
         )
-
         if hasattr(self, "dataset_cls_no_false"):
             self.val_dataset_no_false = self.dataset_cls_no_false(
                 self.data_dir,
@@ -98,6 +100,7 @@ class BaseDataModule(LightningDataModule):
                 image_only=self.image_only,
                 tokenizer=self.tokenizer,
             )
+
 
     def make_no_false_val_dset(self, image_only=False):
         return self.dataset_cls_no_false(
@@ -112,6 +115,7 @@ class BaseDataModule(LightningDataModule):
             tokenizer=self.tokenizer,
         )
 
+
     def set_test_dataset(self):
         self.test_dataset = self.dataset_cls(
             self.data_dir,
@@ -125,6 +129,7 @@ class BaseDataModule(LightningDataModule):
             tokenizer=self.tokenizer,
         )
 
+
     def setup(self, stage):
         if not self.setup_flag:
             self.set_train_dataset()
@@ -137,6 +142,7 @@ class BaseDataModule(LightningDataModule):
 
             self.setup_flag = True
 
+
     def train_dataloader(self):
         loader = DataLoader(
             self.train_dataset,
@@ -148,6 +154,7 @@ class BaseDataModule(LightningDataModule):
         )
         return loader
 
+
     def val_dataloader(self):
         loader = DataLoader(
             self.val_dataset,
@@ -158,6 +165,7 @@ class BaseDataModule(LightningDataModule):
             collate_fn=self.val_dataset.collate,
         )
         return loader
+
 
     def test_dataloader(self):
         loader = DataLoader(

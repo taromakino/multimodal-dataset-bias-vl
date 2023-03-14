@@ -9,6 +9,7 @@ class Pooler(nn.Module):
         self.dense = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.Tanh()
 
+
     def forward(self, hidden_states):
         first_token_tensor = hidden_states[:, 0]
         pooled_output = self.dense(first_token_tensor)
@@ -20,6 +21,7 @@ class ITMHead(nn.Module):
     def __init__(self, hidden_size):
         super().__init__()
         self.fc = nn.Linear(hidden_size, 2)
+
 
     def forward(self, x):
         x = self.fc(x)
@@ -34,6 +36,7 @@ class MLMHead(nn.Module):
         self.bias = nn.Parameter(torch.zeros(config.vocab_size))
         if weight is not None:
             self.decoder.weight = weight
+
 
     def forward(self, x):
         x = self.transform(x)
