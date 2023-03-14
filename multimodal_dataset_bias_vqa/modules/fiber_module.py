@@ -305,4 +305,9 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.vae.parameters(), lr=self.config["learning_rate"])
+        if self.task == "vae":
+            return torch.optim.Adam(self.vae.parameters(), lr=self.config["learning_rate"])
+        elif self.task == "multimodal_regression":
+            return torch.optim.Adam(self.multimodal_regressor.parameters(), lr=self.config["learning_rate"])
+        elif self.task == "unimodal_regression":
+            return torch.optim.Adam(self.unimodal_regressor.parameters(), lr=self.config["learning_rate"])
