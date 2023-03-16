@@ -149,8 +149,9 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
-            pin_memory=True,
             collate_fn=self.train_dataset.collate,
+            pin_memory=True,
+            persistent_workers=True
         )
         return loader
 
@@ -161,8 +162,9 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            pin_memory=True,
             collate_fn=self.val_dataset.collate,
+            pin_memory=True,
+            persistent_workers=True
         )
         return loader
 
@@ -173,7 +175,8 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.eval_batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            pin_memory=True,
             collate_fn=self.test_dataset.collate,
+            pin_memory=True,
+            persistent_workers=True
         )
         return loader
