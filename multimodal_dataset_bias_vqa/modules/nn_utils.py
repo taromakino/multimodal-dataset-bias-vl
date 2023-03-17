@@ -16,4 +16,4 @@ class MLP(nn.Module):
 
 
     def forward(self, *args):
-        return torch.squeeze(self.module_list(torch.hstack(args)))
+        return self.module_list(torch.hstack(args))
