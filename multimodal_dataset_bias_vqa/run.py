@@ -72,5 +72,6 @@ def main(_config):
         resume_from_checkpoint=_config["resume_from"] # Load everything (model weights, optimizer, lr scheduler, etc)
     )
 
-    trainer.fit(model, datamodule=dm)
+    if not _config["test_only"]:
+        trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)

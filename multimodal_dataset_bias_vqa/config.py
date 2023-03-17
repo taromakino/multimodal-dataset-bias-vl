@@ -10,6 +10,7 @@ def config():
     task = None
     datasets = ["vqa"]
     val_mode = "min"
+    test_only = False
 
     # Image settings
     train_transform_keys = ["albef"]
