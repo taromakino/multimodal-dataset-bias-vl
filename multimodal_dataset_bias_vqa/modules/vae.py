@@ -70,8 +70,8 @@ class VanillaVAE(nn.Module):
     def __init__(self, input_dim, hidden_dims, latent_dim, output_dim, n_samples):
         super().__init__()
         self.n_samples = n_samples
-        self.q_z_xy_net = GaussianMLP(2 * input_dim + 1, hidden_dims, latent_dim, nn.ReLU)
-        self.p_y_xz_net = MLP(2 * input_dim + latent_dim, hidden_dims, 1, nn.ReLU)
+        self.q_z_xy_net = GaussianMLP(2 * input_dim + output_dim, hidden_dims, latent_dim)
+        self.p_y_xz_net = MLP(2 * input_dim + latent_dim, hidden_dims, output_dim)
 
 
     def sample_z(self, mu, var):
