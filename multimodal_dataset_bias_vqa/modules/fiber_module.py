@@ -3,10 +3,10 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from modules import heads, roberta, swin_transformer
-from modules.regression import MultimodalRegressor, UnimodalRegressor
+from modules.classify import MultimodalClassifier, UnimodalClassifier
 from modules.roberta import RobertaModel
 from modules.swin_helpers import swin_adapt_position_encoding
-from modules.vae import Vae
+from modules.vae import Vae, VanillaVAE
 from pytorch_lightning.metrics import Metric
 
 
@@ -77,12 +77,16 @@ class FIBERTransformerSS(pl.LightningModule):
             self.cross_modal_image_pooler_itc = heads.Pooler(config["hidden_size"])
             self.cross_modal_text_pooler_itc = heads.Pooler(config["hidden_size"])
 
-        self.vae = Vae(config["hidden_size"], config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
-            config["n_components"], config["n_samples"])
+        if config["is_vanilla"]:
+            self.vae = VanillaVAE(config["hidden_size"], config["hidden_dims"], config["latent_size"],
+                config["vqav2_label_size"], config["n_samples"])
+        else:
+            self.vae = Vae(config["hidden_size"], config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
+                config["n_components"], config["n_samples"])
         self.vqa_score = VQAScore()
-        self.multimodal_regressor = MultimodalRegressor(config["hidden_size"], config["hidden_dims"],
+        self.multimodal_regressor = MultimodalClassifier(config["hidden_size"], config["hidden_dims"],
             config["vqav2_label_size"])
-        self.unimodal_regressor = UnimodalRegressor(config["hidden_size"], config["hidden_dims"],
+        self.unimodal_regressor = UnimodalClassifier(config["hidden_size"], config["hidden_dims"],
             config["vqav2_label_size"])
 
         exclude_keys = ["image_queue", "text_queue", "queue_ptr", "queue_total", "image_input_queue", "text_input_queue",
@@ -262,10 +266,10 @@ class FIBERTransformerSS(pl.LightningModule):
         if self.task == "vae":
             x = self.make_embeds(batch)["cls_feats"]
             out = self.vae(x, y)
-        elif self.task == "multimodal_regression":
+        elif self.task == "multimodal_classify":
             x = self.make_embeds(batch)["cls_feats"]
             out = self.multimodal_regressor(x, y)
-        elif self.task == "unimodal_regression":
+        elif self.task == "unimodal_classify":
             x_image = self.make_embeds(batch, image_only=True)["cls_feats"]
             x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             out = self.unimodal_regressor(x_image, x_text, y)
@@ -307,7 +311,7 @@ class FIBERTransformerSS(pl.LightningModule):
     def configure_optimizers(self):
         if self.task == "vae":
             return torch.optim.Adam(self.vae.parameters(), lr=self.config["learning_rate"])
-        elif self.task == "multimodal_regression":
+        elif self.task == "multimodal_classify":
             return torch.optim.Adam(self.multimodal_regressor.parameters(), lr=self.config["learning_rate"])
-        elif self.task == "unimodal_regression":
+        elif self.task == "unimodal_classify":
             return torch.optim.Adam(self.unimodal_regressor.parameters(), lr=self.config["learning_rate"])

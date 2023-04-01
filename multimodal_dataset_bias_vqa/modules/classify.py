@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from modules.nn_utils import MLP
 
 
-class MultimodalRegressor(nn.Module):
+class MultimodalClassifier(nn.Module):
     def __init__(self, input_dim, hidden_dims, output_dim):
         super().__init__()
         self.model = MLP(2 * input_dim, hidden_dims, output_dim)
@@ -19,7 +19,7 @@ class MultimodalRegressor(nn.Module):
         }
 
 
-class UnimodalRegressor(nn.Module):
+class UnimodalClassifier(nn.Module):
     def __init__(self, input_dim, hidden_dims, output_dim):
         super().__init__()
         self.image_model = MLP(input_dim, hidden_dims, output_dim)

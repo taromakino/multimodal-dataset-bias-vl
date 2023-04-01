@@ -70,6 +70,7 @@ def config():
     latent_size = 512
     n_components = 128
     n_samples = 128
+    is_vanilla = False
 
 
 @ex.named_config
@@ -78,10 +79,10 @@ def task_vae():
 
 
 @ex.named_config
-def task_multimodal_regression():
-    task = "multimodal_regression"
+def task_multimodal_classify():
+    task = "multimodal_classify"
 
 
 @ex.named_config
-def task_unimodal_regression():
-    task = "unimodal_regression"
+def task_unimodal_classify():
+    task = "unimodal_classify"
