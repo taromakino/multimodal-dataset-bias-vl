@@ -81,7 +81,7 @@ class VanillaVAE(nn.Module):
 
 
     def forward(self, x, y):
-        batch_size = len(x)  # For assertions
+        batch_size = len(x) # For assertions
         # z ~ q(z|x,y)
         mu_z_xy, var_z_xy = self.q_z_xy_net(x, y)
         z = self.sample_z(mu_z_xy, var_z_xy)
@@ -92,7 +92,7 @@ class VanillaVAE(nn.Module):
         y = torch.repeat_interleave(y[None], repeats=self.n_samples, dim=0)
         x, y, z = x.view(-1, x.shape[-1]), y.view(-1, y.shape[-1]), z.view(-1, z.shape[-1])
         logits_y_xz = self.p_y_xz_net(x, z)
-        log_p_y_xz = -F.binary_cross_entropy_with_logits(logits_y_xz, y, reduction="none").squeeze()
+        log_p_y_xz = -F.binary_cross_entropy_with_logits(logits_y_xz, y, reduction="none").sum(dim=1)
         assert log_p_y_xz.shape == (self.n_samples * batch_size,)
         # KL(q(z|x,y) || p(z))
         kl = (-0.5 * torch.sum(1 + var_z_xy.log() - mu_z_xy.pow(2) - var_z_xy, dim=1)).mean()
