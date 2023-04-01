@@ -85,7 +85,7 @@ class VanillaVAE(nn.Module):
         # z ~ q(z|x,y)
         mu_z_xy, var_z_xy = self.q_z_xy_net(x, y)
         z = self.sample_z(mu_z_xy, var_z_xy)
-        log_q_z_xy = diag_gaussian_log_prob(z, mu_z_xy, var_z_xy, self.device).view(-1)
+        log_q_z_xy = diag_gaussian_log_prob(z, mu_z_xy, var_z_xy).view(-1)
         assert log_q_z_xy.shape == (self.n_samples * batch_size,)
         # E_q(z|x,y)[log p(y|x,z)]
         x = torch.repeat_interleave(x[None], repeats=self.n_samples, dim=0)
