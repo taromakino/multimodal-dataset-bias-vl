@@ -76,7 +76,7 @@ class VanillaVAE(nn.Module):
 
     def sample_z(self, mu, var):
         sd = var.sqrt()
-        eps = torch.randn(self.n_samples, *sd.shape).to(self.device)
+        eps = torch.randn(self.n_samples, *sd.shape).to(sd.get_device())
         return mu + eps * sd
 
 
@@ -97,7 +97,9 @@ class VanillaVAE(nn.Module):
         # KL(q(z|x,y) || p(z))
         kl = (-0.5 * torch.sum(1 + var_z_xy.log() - mu_z_xy.pow(2) - var_z_xy, dim=1)).mean()
         elbo = log_p_y_xz.mean() - kl
+        logits_y_xz = logits_y_xz.view((self.n_samples, batch_size, -1))
         return {
             "loss": -elbo,
-            "kl": kl
+            "kl": kl,
+            "logits": logits_y_xz[0]
         }
