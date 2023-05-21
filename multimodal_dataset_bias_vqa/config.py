@@ -8,7 +8,7 @@ ex = Experiment("FIBER")
 def config():
     seed = 0
     task = None
-    datasets = ["vqa"]
+    datasets = None
     val_mode = "min"
     test_only = False
 
@@ -76,13 +76,40 @@ def config():
 @ex.named_config
 def task_vae():
     task = "vae"
+    datasets = ["vqa"]
+    image_size = 576
 
 
 @ex.named_config
 def task_multimodal_classify():
-    task = "multimodal_classify"
+    task = "multimodal_classify_vqa"
+    datasets = ["vqa"]
+    image_size = 576
 
 
 @ex.named_config
 def task_unimodal_classify():
-    task = "unimodal_classify"
+    task = "unimodal_classify_vqa"
+    datasets = ["vqa"]
+    image_size = 576
+
+
+@ex.named_config
+def task_vae_nlvr2():
+    task = "vae_nlvr2"
+    datasets = ["nlvr2"]
+    image_size = 384
+
+
+@ex.named_config
+def task_multimodal_classify_nlvr2():
+    task = "multimodal_classify_nlvr2"
+    datasets = ["nlvr2"]
+    image_size = 384
+
+
+@ex.named_config
+def task_unimodal_classify_nlvr2():
+    task = "unimodal_classify_nlvr2"
+    datasets = ["nlvr2"]
+    image_size = 384
