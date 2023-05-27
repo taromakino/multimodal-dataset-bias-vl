@@ -255,25 +255,41 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def forward(self, batch):
-        if "vqav2" in self.task:
+        if self.task == "task_vae_vqav2":
+            x = self.make_embeds(batch)["cls_feats"]
             y_true = self.make_vqa_targets(batch)
-        elif "nlvr2" in self.task:
-            y_true = torch.tensor(batch["answers"]).to(self.device)[:, None]
-        else:
-            raise ValueError
-        if "vae" in self.task:
-            x = self.make_embeds(batch)["cls_feats"]
             out = self.vae(x, y_true)
-        elif "multimodal_classify" in self.task:
+            self.vqa_score(out.pop("logits"), y_true)
+        elif self.task == "task_multimodal_classify_vqav2":
             x = self.make_embeds(batch)["cls_feats"]
+            y_true = self.make_vqa_targets(batch)
             out = self.multimodal_regressor(x, y_true)
-        elif "unimodal_classify" in self.task:
+        elif self.task == "task_unimodal_classify_vqav2":
             x_image = self.make_embeds(batch, image_only=True)["cls_feats"]
             x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
+            y_true = self.make_vqa_targets(batch)
+            out = self.unimodal_regressor(x_image, x_text, y_true)
+        elif self.task == "task_vae_nlvr2":
+            embeds1 = self.make_embeds(batch, image_token_type_idx=1)
+            embeds2 = self.make_embeds(batch, image_token_type_idx=2)
+            x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
+            y_true = torch.tensor(batch["answers"]).to(self.device)[:, None]
+            out = self.vae(x, y_true)
+        elif self.task == "task_multimodal_classify_nlvr2":
+            embeds1 = self.make_embeds(batch, image_token_type_idx=1)
+            embeds2 = self.make_embeds(batch, image_token_type_idx=2)
+            x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
+            y_true = torch.tensor(batch["answers"]).to(self.device)[:, None]
+            out = self.multimodal_regressor(x, y_true)
+        elif self.task == "task_unimodal_classify_nlvr2":
+            image_embeds1 = self.make_embeds(batch, image_only=True, image_token_type_idx=1)
+            image_embeds2 = self.make_embeds(batch, image_only=True, image_token_type_idx=2)
+            x_image = torch.cat([image_embeds1["cls_feats"], image_embeds2["cls_feats"]], dim=-1)
+            x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
+            y_true = torch.tensor(batch["answers"]).to(self.device)[:, None]
             out = self.unimodal_regressor(x_image, x_text, y_true)
         else:
             raise ValueError
-        self.vqa_score(out.pop("logits"), y_true)
         return out
 
 
