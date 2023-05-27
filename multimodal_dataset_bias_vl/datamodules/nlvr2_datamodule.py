@@ -1,5 +1,5 @@
-from ..datasets import NLVR2Dataset
-from .datamodule_base import BaseDataModule
+from datamodules.datamodule_base import BaseDataModule
+from datasets.nlvr2_dataset import NLVR2Dataset
 
 
 class NLVR2DataModule(BaseDataModule):
