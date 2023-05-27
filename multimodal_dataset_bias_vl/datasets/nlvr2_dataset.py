@@ -11,9 +11,9 @@ class NLVR2Dataset(BaseDataset):
         if split == "train":
             names = ["nlvr2_train"]
         elif split == "val":
-            names = ["nlvr2_dev", "nlvr2_test1"]
+            names = ["nlvr2_val"]
         elif split == "test":
-            names = ["nlvr2_dev", "nlvr2_test1"]
+            names = ["nlvr2_test"]
 
         super().__init__(
             *args,
