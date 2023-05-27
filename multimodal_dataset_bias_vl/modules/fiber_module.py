@@ -71,11 +71,11 @@ class FIBERTransformerSS(pl.LightningModule):
             raise ValueError
 
         if config["is_vanilla"]:
-            self.vae = VanillaVAE(x_dim, config["hidden_dims"], config["latent_size"],
-                config["vqav2_label_size"], config["n_samples"], log_prob_fn)
+            self.vae = VanillaVAE(x_dim, config["hidden_dims"], config["latent_size"], y_dim, config["n_samples"],
+                log_prob_fn)
         else:
-            self.vae = Vae(x_dim, config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
-                config["n_components"], config["n_samples"], log_prob_fn)
+            self.vae = Vae(x_dim, config["hidden_dims"], config["latent_size"], y_dim, config["n_components"],
+                config["n_samples"], log_prob_fn)
         self.multimodal_regressor = MultimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
         self.unimodal_regressor = UnimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
 
@@ -255,10 +255,10 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def forward(self, batch):
-        if "vae" in self.task:
+        if "vqav2" in self.task:
             y_true = self.make_vqa_targets(batch)
         elif "nlvr2" in self.task:
-            y_true = torch.tensor(batch["answers"]).to(self.device).long()
+            y_true = torch.tensor(batch["answers"]).to(self.device)[:, None]
         else:
             raise ValueError
         if "vae" in self.task:
