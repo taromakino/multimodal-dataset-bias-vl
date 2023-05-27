@@ -2,6 +2,7 @@ import os
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from modules import heads, roberta, swin_transformer
 from modules.classify import MultimodalClassifier, UnimodalClassifier
 from modules.metrics import Accuracy, VQAScore
@@ -54,15 +55,18 @@ class FIBERTransformerSS(pl.LightningModule):
             self.cross_modal_image_pooler_itc = heads.Pooler(config["hidden_size"])
             self.cross_modal_text_pooler_itc = heads.Pooler(config["hidden_size"])
 
-        if "vqa" in task:
+        if "vqa" in self.task:
             x_dim = 2 * config["hidden_size"]
             y_dim = config["vqav2_label_size"]
             log_prob_fn = lambda y_pred, y_true: -F.binary_cross_entropy_with_logits(y_pred, y_true,
                 reduction="none").sum(dim=1)
-        elif "nlvr2" in task:
+            nll_fn = lambda y_pred, y_true: F.binary_cross_entropy_with_logits(y_pred, y_true,
+                reduction="none").sum(dim=1)
+        elif "nlvr2" in self.task:
             x_dim = 4 * config["hidden_size"]
             y_dim = 1
             log_prob_fn = lambda y_pred, y_true: -F.binary_cross_entropy_with_logits(y_pred, y_true)
+            nll_fn = lambda y_pred, y_true: F.binary_cross_entropy_with_logits(y_pred, y_true)
         else:
             raise ValueError
 
@@ -72,8 +76,8 @@ class FIBERTransformerSS(pl.LightningModule):
         else:
             self.vae = Vae(x_dim, config["hidden_dims"], config["latent_size"], config["vqav2_label_size"],
                 config["n_components"], config["n_samples"], log_prob_fn)
-        self.multimodal_regressor = MultimodalClassifier(x_dim, config["hidden_dims"], y_dim, -log_prob_fn)
-        self.unimodal_regressor = UnimodalClassifier(x_dim, config["hidden_dims"], y_dim, -log_prob_fn)
+        self.multimodal_regressor = MultimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
+        self.unimodal_regressor = UnimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
 
         self.accuracy = Accuracy()
         self.vqa_score = VQAScore()
@@ -257,13 +261,13 @@ class FIBERTransformerSS(pl.LightningModule):
             y_true = torch.tensor(batch["answers"]).to(self.device).long()
         else:
             raise ValueError
-        if self.task == "vae":
+        if "vae" in self.task:
             x = self.make_embeds(batch)["cls_feats"]
-            out = self.vae(x, y_true, likelihood_fn)
-        elif self.task == "multimodal_classify":
+            out = self.vae(x, y_true)
+        elif "multimodal_classify" in self.task:
             x = self.make_embeds(batch)["cls_feats"]
             out = self.multimodal_regressor(x, y_true)
-        elif self.task == "unimodal_classify":
+        elif "unimodal_classify" in self.task:
             x_image = self.make_embeds(batch, image_only=True)["cls_feats"]
             x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             out = self.unimodal_regressor(x_image, x_text, y_true)

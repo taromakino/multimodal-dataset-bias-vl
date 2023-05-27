@@ -74,22 +74,22 @@ def config():
 
 
 @ex.named_config
-def task_vae():
-    task = "vae"
+def task_vae_vqav2():
+    task = "vae_vqav2"
     datasets = ["vqa"]
     image_size = 576
 
 
 @ex.named_config
-def task_multimodal_classify():
-    task = "multimodal_classify_vqa"
+def task_multimodal_classify_vqav2():
+    task = "multimodal_classify_vqav2"
     datasets = ["vqa"]
     image_size = 576
 
 
 @ex.named_config
-def task_unimodal_classify():
-    task = "unimodal_classify_vqa"
+def task_unimodal_classify_vqav2():
+    task = "unimodal_classify_vqav2"
     datasets = ["vqa"]
     image_size = 576
 

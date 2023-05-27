@@ -4,10 +4,12 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import ConcatDataset
 from torch.utils.data.distributed import DistributedSampler
 from datamodules.vqav2_datamodule import VQAv2DataModule
+from datamodules.nlvr2_datamodule import NLVR2DataModule
 
 
 _datamodules = {
-    "vqa": VQAv2DataModule
+    "vqa": VQAv2DataModule,
+    "nlvr2": NLVR2DataModule
 }
 
 

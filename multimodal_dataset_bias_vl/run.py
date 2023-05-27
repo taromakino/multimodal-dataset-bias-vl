@@ -48,11 +48,11 @@ def main(_config):
 
     model.freeze()
     task = _config["task"]
-    if task == "vae":
+    if "vae" in task:
         model.vae.requires_grad_(True)
-    elif task == "multimodal_classify":
+    elif "multimodal_classify" in task:
         model.multimodal_regressor.requires_grad_(True)
-    elif task == "unimodal_classify":
+    elif "unimodal_classify" in task:
         model.unimodal_regressor.requires_grad_(True)
 
     n_accumulate = max(_config["batch_size"] // (_config["per_gpu_batchsize"] * _config["num_gpus"] * _config["num_nodes"]), 1)
