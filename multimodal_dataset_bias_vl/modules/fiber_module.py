@@ -255,7 +255,7 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def make_nlvr2_targets(self, batch):
-        return torch.tensor(batch["answers"]).float().to(self.device)[:, None]
+        return torch.tensor(batch["answers"]).float().to(self.device)
 
 
     def forward(self, batch):

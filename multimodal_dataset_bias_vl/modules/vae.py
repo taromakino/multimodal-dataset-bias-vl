@@ -39,7 +39,7 @@ class Vae(nn.Module):
     def forward(self, x, y_true):
         batch_size = len(x) # For assertions
         # z ~ q(z|x,y)
-        mu_z_xy, var_z_xy = self.q_z_xy_net(x, y_true)
+        mu_z_xy, var_z_xy = self.q_z_xy_net(x, y_true[:, None]) # Add dimension to y_true for hstack
         z = self.sample_z(mu_z_xy, var_z_xy)
         log_q_z_xy = diag_gaussian_log_prob(z, mu_z_xy, var_z_xy).view(-1)
         assert log_q_z_xy.shape == (self.n_samples * batch_size,)
