@@ -13,7 +13,7 @@ class MultimodalClassifier(nn.Module):
 
     def forward(self, x, y_true):
         y_pred = self.model(x)
-        loss = self.loss_fn(y_pred, y_true)
+        loss = self.loss_fn(y_pred, y_true).mean()
         return {
             "loss": loss,
             "logits": y_pred
@@ -32,7 +32,7 @@ class UnimodalClassifier(nn.Module):
         prob_image = torch.sigmoid(self.image_model(x_image))
         prob_text = torch.sigmoid(self.text_model(x_text))
         y_pred = torch.log((prob_image + prob_text) / 2)
-        loss = self.loss(y_pred, y_true)
+        loss = self.loss(y_pred, y_true).mean()
         return {
             "loss": loss,
             "logits": y_pred.log()

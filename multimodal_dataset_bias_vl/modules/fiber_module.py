@@ -58,17 +58,18 @@ class FIBERTransformerSS(pl.LightningModule):
         if "vqa" in self.task:
             x_dim = 2 * config["hidden_size"]
             y_dim = config["vqav2_label_size"]
-            log_prob_fn = lambda y_pred, y_true: -F.binary_cross_entropy_with_logits(y_pred, y_true,
-                reduction="none").sum(dim=1)
-            nll_fn = lambda y_pred, y_true: F.binary_cross_entropy_with_logits(y_pred, y_true,
-                reduction="none").sum(dim=1)
         elif "nlvr2" in self.task:
             x_dim = 4 * config["hidden_size"]
             y_dim = 1
-            log_prob_fn = lambda y_pred, y_true: -F.binary_cross_entropy_with_logits(y_pred, y_true)
-            nll_fn = lambda y_pred, y_true: F.binary_cross_entropy_with_logits(y_pred, y_true)
         else:
             raise ValueError
+
+        # We need to sum the losses over the targets for VQA. This also works for NLVR2, but since there's only one
+        # target, it has a similar effect to squeeze().
+        log_prob_fn = lambda y_pred, y_true: -F.binary_cross_entropy_with_logits(y_pred, y_true,
+            reduction="none").sum(dim=1)
+        nll_fn = lambda y_pred, y_true: F.binary_cross_entropy_with_logits(y_pred, y_true,
+            reduction="none").sum(dim=1)
 
         if config["is_vanilla"]:
             self.vae = VanillaVAE(x_dim, config["hidden_dims"], config["latent_size"], y_dim, config["n_samples"],
@@ -310,8 +311,9 @@ class FIBERTransformerSS(pl.LightningModule):
         
         
     def validation_epoch_end(self, outs):
-        self.log("val_score", self.vqa_score.compute())
-        self.vqa_score.reset()
+        if "vqa" in self.task:
+            self.log("val_score", self.vqa_score.compute())
+            self.vqa_score.reset()
 
 
     def test_step(self, batch, batch_idx):
@@ -322,8 +324,9 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def test_epoch_end(self, outs):
-        self.log("test_score", self.vqa_score.compute())
-        self.vqa_score.reset()
+        if "vqa" in self.task:
+            self.log("test_score", self.vqa_score.compute())
+            self.vqa_score.reset()
 
 
     def configure_optimizers(self):
