@@ -255,7 +255,7 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def make_nlvr2_targets(self, batch):
-        return torch.tensor(batch["answers"]).float().to(self.device)
+        return torch.tensor(batch["answers"]).float().to(self.device)[:, None]
 
 
     def forward(self, batch):
@@ -327,9 +327,9 @@ class FIBERTransformerSS(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        if self.task == "vae":
+        if "vae" in self.task:
             return torch.optim.Adam(self.vae.parameters(), lr=self.config["learning_rate"])
-        elif self.task == "multimodal_classify":
+        elif "multimodal_classify" in self.task:
             return torch.optim.Adam(self.multimodal_regressor.parameters(), lr=self.config["learning_rate"])
-        elif self.task == "unimodal_classify":
+        elif "unimodal_classify" in self.task:
             return torch.optim.Adam(self.unimodal_regressor.parameters(), lr=self.config["learning_rate"])
