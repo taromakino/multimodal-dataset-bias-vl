@@ -13,13 +13,13 @@ class Accuracy(Metric):
             logits.detach().to(self.correct.device),
             target.detach().to(self.correct.device),
         )
-        preds = torch.sigmoid(logits)
+        preds = (torch.sigmoid(logits) > 0.5).int()
         if target.numel() == 0:
             return 1
 
         assert preds.shape == target.shape
 
-        self.correct += torch.sum(preds == target)
+        self.correct += torch.sum(preds == target.int())
         self.total += target.numel()
 
     def compute(self):
