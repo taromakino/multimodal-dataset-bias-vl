@@ -57,9 +57,12 @@ class FIBERTransformerSS(pl.LightningModule):
 
         if "vqa" in self.task:
             x_dim = 2 * config["hidden_size"]
+            image_dim = text_dim = config["hidden_size"]
             y_dim = config["vqav2_label_size"]
         elif "nlvr2" in self.task:
             x_dim = 4 * config["hidden_size"]
+            image_dim = 2 * config["hidden_size"]
+            text_dim = config["hidden_size"]
             y_dim = 1
         else:
             raise ValueError
@@ -78,7 +81,7 @@ class FIBERTransformerSS(pl.LightningModule):
             self.vae = Vae(x_dim, config["hidden_dims"], config["latent_size"], y_dim, config["n_components"],
                 config["n_samples"], log_prob_fn)
         self.multimodal_regressor = MultimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
-        self.unimodal_regressor = UnimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
+        self.unimodal_regressor = UnimodalClassifier(image_dim, text_dim, config["hidden_dims"], y_dim, nll_fn)
 
         self.accuracy = Accuracy()
         self.vqa_score = VQAScore()
