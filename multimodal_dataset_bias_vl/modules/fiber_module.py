@@ -305,7 +305,7 @@ class FIBERTransformerSS(pl.LightningModule):
             embeds2 = self.make_embeds(batch, image_token_type_idx=2)
             x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
             y_true = self.make_nlvr2_targets(batch)
-            out = self.multimodal_classifier(x, y_true)
+            out = self.unimodal_classifier(x, y_true)
             self.accuracy(out.pop("logits"), y_true)
         else:
             raise ValueError
