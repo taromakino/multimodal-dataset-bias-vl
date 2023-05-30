@@ -27,12 +27,10 @@ class UnimodalClassifier(nn.Module):
         self.text_model = MLP(text_dim, hidden_dims, output_dim)
 
 
-    def forward(self, x_image, x_text, y_true):
-        logits_image = F.log_softmax(self.image_model(x_image))
-        logits_text = F.log_softmax(self.text_model(x_text))
-        logits = logits_image + logits_text
-        loss = self.loss_fn(logits, y_true).mean()
+    def forward(self, x, y_true):
+        y_pred = self.model(x)
+        loss = self.loss_fn(y_pred, y_true).mean()
         return {
             "loss": loss,
-            "logits": logits
+            "logits": y_pred
         }
