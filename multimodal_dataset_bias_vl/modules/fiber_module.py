@@ -296,10 +296,10 @@ class FIBERTransformerSS(pl.LightningModule):
         elif self.task == "unimodal_classify_nlvr2":
             embeds1 = self.make_embeds(batch, image_only=True, image_token_type_idx=1)
             embeds2 = self.make_embeds(batch, image_only=True, image_token_type_idx=2)
-            x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
-            # x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
+            x_image = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
+            x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             y_true = self.make_nlvr2_targets(batch)
-            out = self.unimodal_classifier(x, y_true)
+            out = self.unimodal_classifier(x_image, x_text, y_true)
             self.accuracy(out.pop("logits"), y_true)
         else:
             raise ValueError
