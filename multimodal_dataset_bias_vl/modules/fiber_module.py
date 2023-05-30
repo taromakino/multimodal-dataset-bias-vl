@@ -81,7 +81,7 @@ class FIBERTransformerSS(pl.LightningModule):
             self.vae = Vae(x_dim, config["hidden_dims"], config["latent_size"], y_dim, config["n_components"],
                 config["n_samples"], log_prob_fn)
         self.multimodal_classifier = MultimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
-        self.unimodal_classifier = UnimodalClassifier(x_dim, config["hidden_dims"], y_dim, nll_fn)
+        self.unimodal_classifier = UnimodalClassifier(image_dim, text_dim, config["hidden_dims"], y_dim, nll_fn)
 
         self.accuracy = Accuracy()
         self.vqa_score = VQAScore()
@@ -294,18 +294,12 @@ class FIBERTransformerSS(pl.LightningModule):
             out = self.multimodal_classifier(x, y_true)
             self.accuracy(out.pop("logits"), y_true)
         elif self.task == "unimodal_classify_nlvr2":
-            # image_embeds1 = self.make_embeds(batch, image_only=True, image_token_type_idx=1)
-            # image_embeds2 = self.make_embeds(batch, image_only=True, image_token_type_idx=2)
-            # x_image = torch.cat([image_embeds1["cls_feats"], image_embeds2["cls_feats"]], dim=-1)
-            # x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
-            # y_true = self.make_nlvr2_targets(batch)
-            # out = self.unimodal_classifier(x_image, x_text, y_true)
-            # self.accuracy(out.pop("logits"), y_true)
-            embeds1 = self.make_embeds(batch, image_token_type_idx=1)
-            embeds2 = self.make_embeds(batch, image_token_type_idx=2)
-            x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
+            image_embeds1 = self.make_embeds(batch, image_only=True, image_token_type_idx=1)
+            image_embeds2 = self.make_embeds(batch, image_only=True, image_token_type_idx=2)
+            x_image = torch.cat([image_embeds1["cls_feats"], image_embeds2["cls_feats"]], dim=-1)
+            x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             y_true = self.make_nlvr2_targets(batch)
-            out = self.unimodal_classifier(x, y_true)
+            out = self.unimodal_classifier(x_image, x_text, y_true)
             self.accuracy(out.pop("logits"), y_true)
         else:
             raise ValueError
