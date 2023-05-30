@@ -309,10 +309,16 @@ class FIBERTransformerSS(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         out = self(batch)
         self.log("train_loss", out["loss"], on_step=False, on_epoch=True)
-        if "nlvr2" in self.task:
+        return out["loss"]
+
+
+    def training_epoch_end(self, outs):
+        if "vqa" in self.task:
+            self.log("train_score", self.vqa_score.compute())
+            self.vqa_score.reset()
+        elif "nlvr2" in self.task:
             self.log("train_acc", self.accuracy.compute())
             self.accuracy.reset()
-        return out["loss"]
 
 
     def validation_step(self, batch, batch_idx):
