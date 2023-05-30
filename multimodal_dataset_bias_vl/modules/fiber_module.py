@@ -308,6 +308,10 @@ class FIBERTransformerSS(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         out = self(batch)
+        self.log("train_loss", out["loss"], on_step=False, on_epoch=True)
+        if "nlvr2" in self.task:
+            self.log("train_acc", self.accuracy.compute())
+            self.accuracy.reset()
         return out["loss"]
 
 
