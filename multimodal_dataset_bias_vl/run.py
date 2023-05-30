@@ -54,6 +54,8 @@ def main(_config):
         model.multimodal_classifier.requires_grad_(True)
     elif "unimodal_classify" in task:
         model.unimodal_classifier.requires_grad_(True)
+    else:
+        raise ValueError
 
     n_accumulate = max(_config["batch_size"] // (_config["per_gpu_batchsize"] * _config["num_gpus"] * _config["num_nodes"]), 1)
     trainer = pl.Trainer(
