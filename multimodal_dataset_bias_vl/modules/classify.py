@@ -28,7 +28,7 @@ class UnimodalClassifier(nn.Module):
 
 
     def forward(self, x, y_true):
-        y_pred = self.model(x)
+        y_pred = self.image_model(x)
         loss = self.loss_fn(y_pred, y_true).mean()
         return {
             "loss": loss,
