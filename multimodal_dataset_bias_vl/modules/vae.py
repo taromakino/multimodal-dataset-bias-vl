@@ -73,7 +73,7 @@ class VanillaVAE(nn.Module):
         self.n_samples = n_samples
         self.log_p_y_xz_fn = log_p_y_xz_fn
         self.q_z_xy_net = GaussianMLP(x_dim + y_dim, h_dims, z_dim)
-        self.p_y_xz_net = MLP(x_dim + z_dim, h_dims, y_dim, nn.GELU)
+        self.p_y_xz_net = MLP(x_dim + z_dim, h_dims, y_dim, nn.Sigmoid)
 
 
     def sample_z(self, mu, var):
