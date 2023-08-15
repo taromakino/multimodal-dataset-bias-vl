@@ -322,7 +322,6 @@ class FIBERTransformerSS(pl.LightningModule):
         if "vqa" in self.task:
             self.log("val_score", self.vqa_score.compute())
             self.vqa_score.reset()
-            print('DEBUG', f'SCORE={self.vqa_score.score}', f'TOTAL={self.vqa_score.total}')
         elif "nlvr2" in self.task:
             self.log("val_acc", self.accuracy.compute())
             self.accuracy.reset()
@@ -339,6 +338,7 @@ class FIBERTransformerSS(pl.LightningModule):
         if "vqa" in self.task:
             self.log("test_score", self.vqa_score.compute())
             self.vqa_score.reset()
+            print('DEBUG', f'SCORE={self.vqa_score.score}', f'TOTAL={self.vqa_score.total}')
         elif "nlvr2" in self.task:
             self.log("test_acc", self.accuracy.compute())
             self.accuracy.reset()
