@@ -1,5 +1,5 @@
 import torch
-from torchmetrics import Metric
+from pytorch_lightning.metrics import Metric
 
 
 class Accuracy(Metric):

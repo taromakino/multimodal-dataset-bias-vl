@@ -245,7 +245,6 @@ class FIBERTransformerSS(pl.LightningModule):
 
         return ret
 
-
     def make_vqa_targets(self, batch):
         vqa_labels = batch["vqa_labels"]
         vqa_scores = batch["vqa_scores"]
@@ -257,10 +256,8 @@ class FIBERTransformerSS(pl.LightningModule):
 
         return vqa_targets
 
-
     def make_nlvr2_targets(self, batch):
         return torch.tensor(batch["answers"]).float().to(self.device)[:, None]
-
 
     def forward(self, batch):
         if self.task == "vae_vqav2":
@@ -305,19 +302,16 @@ class FIBERTransformerSS(pl.LightningModule):
             raise ValueError
         return out
 
-
     def training_step(self, batch, batch_idx):
         out = self(batch)
         return out["loss"]
-
 
     def validation_step(self, batch, batch_idx):
         out = self(batch)
         self.log("val_loss", out["loss"], on_step=False, on_epoch=True)
         if "kl" in out:
             self.log("val_kl", out["kl"], on_step=False, on_epoch=True)
-        
-        
+
     def validation_epoch_end(self, outs):
         if "vqa" in self.task:
             self.log("val_score", self.vqa_score.compute())
@@ -326,23 +320,19 @@ class FIBERTransformerSS(pl.LightningModule):
             self.log("val_acc", self.accuracy.compute())
             self.accuracy.reset()
 
-
     def test_step(self, batch, batch_idx):
         out = self(batch)
         self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
         if "kl" in out:
             self.log("test_kl", out["kl"], on_step=False, on_epoch=True)
 
-
     def test_epoch_end(self, outs):
         if "vqa" in self.task:
             self.log("test_score", self.vqa_score.compute())
             self.vqa_score.reset()
-            print('DEBUG', f'SCORE={self.vqa_score.score}', f'TOTAL={self.vqa_score.total}')
         elif "nlvr2" in self.task:
             self.log("test_acc", self.accuracy.compute())
             self.accuracy.reset()
-
 
     def configure_optimizers(self):
         if "vae" in self.task:
