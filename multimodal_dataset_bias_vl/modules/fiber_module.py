@@ -264,32 +264,27 @@ class FIBERTransformerSS(pl.LightningModule):
             x = self.make_embeds(batch)["cls_feats"]
             y_true = self.make_vqa_targets(batch)
             out = self.vae(x, y_true)
-            self.vqa_score(out.pop("logits"), y_true)
         elif self.task == "multimodal_classify_vqav2":
             x = self.make_embeds(batch)["cls_feats"]
             y_true = self.make_vqa_targets(batch)
             out = self.multimodal_classifier(x, y_true)
-            self.vqa_score(out.pop("logits"), y_true)
         elif self.task == "unimodal_classify_vqav2":
             x_image = self.make_embeds(batch, image_only=True)["cls_feats"]
             x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             y_true = self.make_vqa_targets(batch)
             out = self.unimodal_classifier(x_image, x_text, y_true)
-            self.vqa_score(out.pop("logits"), y_true)
         elif self.task == "vae_nlvr2":
             embeds1 = self.make_embeds(batch, image_token_type_idx=1)
             embeds2 = self.make_embeds(batch, image_token_type_idx=2)
             x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
             y_true = self.make_nlvr2_targets(batch)
             out = self.vae(x, y_true)
-            self.accuracy(out.pop("logits"), y_true)
         elif self.task == "multimodal_classify_nlvr2":
             embeds1 = self.make_embeds(batch, image_token_type_idx=1)
             embeds2 = self.make_embeds(batch, image_token_type_idx=2)
             x = torch.cat([embeds1["cls_feats"], embeds2["cls_feats"]], dim=-1)
             y_true = self.make_nlvr2_targets(batch)
             out = self.multimodal_classifier(x, y_true)
-            self.accuracy(out.pop("logits"), y_true)
         elif self.task == "unimodal_classify_nlvr2":
             embeds1 = self.make_embeds(batch, image_only=True, image_token_type_idx=1)
             embeds2 = self.make_embeds(batch, image_only=True, image_token_type_idx=2)
@@ -297,7 +292,6 @@ class FIBERTransformerSS(pl.LightningModule):
             x_text = self.make_embeds(batch, text_only=True)["cls_feats"]
             y_true = self.make_nlvr2_targets(batch)
             out = self.unimodal_classifier(x_image, x_text, y_true)
-            self.accuracy(out.pop("logits"), y_true)
         else:
             raise ValueError
         return out
@@ -311,6 +305,12 @@ class FIBERTransformerSS(pl.LightningModule):
         self.log("val_loss", out["loss"], on_step=False, on_epoch=True)
         if "kl" in out:
             self.log("val_kl", out["kl"], on_step=False, on_epoch=True)
+        if "vqa" in self.task:
+            y_true = self.make_vqa_targets(batch)
+            self.vqa_score(out.pop("logits"), y_true)
+        elif "nlvr2" in self.task:
+            y_true = self.make_nlvr2_targets(batch)
+            self.accuracy(out.pop("logits"), y_true)
 
     def validation_epoch_end(self, outs):
         if "vqa" in self.task:
@@ -325,6 +325,12 @@ class FIBERTransformerSS(pl.LightningModule):
         self.log("test_loss", out["loss"], on_step=False, on_epoch=True)
         if "kl" in out:
             self.log("test_kl", out["kl"], on_step=False, on_epoch=True)
+        if "vqa" in self.task:
+            y_true = self.make_vqa_targets(batch)
+            self.vqa_score(out.pop("logits"), y_true)
+        elif "nlvr2" in self.task:
+            y_true = self.make_nlvr2_targets(batch)
+            self.accuracy(out.pop("logits"), y_true)
 
     def test_epoch_end(self, outs):
         if "vqa" in self.task:
